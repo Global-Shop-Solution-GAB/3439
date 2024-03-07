@@ -1,0 +1,137 @@
+Program.Sub.ScreenSU.Start
+gui.F_Part_Notes..create
+gui.F_Part_Notes..caption("Part Notes")
+gui.F_Part_Notes..size(6000,3850)
+gui.F_Part_Notes..position(0,0)
+gui.F_Part_Notes..event(unload,f_part_notes_unload)
+gui.F_Part_Notes..alwaysontop(False)
+gui.F_Part_Notes..fontname("Arial")
+gui.F_Part_Notes..fontsize(8)
+gui.F_Part_Notes..forecolor(0)
+gui.F_Part_Notes..fontstyle(,,,,)
+gui.F_Part_Notes..BackColor(-2147483633)
+gui.F_Part_Notes..controlbox(True)
+gui.F_Part_Notes..maxbutton(False)
+gui.F_Part_Notes..minbutton(True)
+gui.F_Part_Notes..mousepointer(0)
+gui.F_Part_Notes..moveable(True)
+gui.F_Part_Notes..sizeable(False)
+gui.F_Part_Notes..ShowInTaskBar(True)
+gui.F_Part_Notes..titlebar(True)
+gui.F_Part_Notes.txtPartNotes.create(textboxm)
+gui.F_Part_Notes.txtPartNotes.text("")
+gui.F_Part_Notes.txtPartNotes.visible(True)
+gui.F_Part_Notes.txtPartNotes.size(5500,2500)
+gui.F_Part_Notes.txtPartNotes.zorder(0)
+gui.F_Part_Notes.txtPartNotes.position(200,200)
+gui.F_Part_Notes.txtPartNotes.enabled(True)
+gui.F_Part_Notes.txtPartNotes.alignment(0)
+gui.F_Part_Notes.txtPartNotes.fontname("Arial")
+gui.F_Part_Notes.txtPartNotes.fontsize(8)
+gui.F_Part_Notes.txtPartNotes.BackColor(-2147483643)
+gui.F_Part_Notes.cmdSave.create(button)
+gui.F_Part_Notes.cmdSave.caption("Save")
+gui.F_Part_Notes.cmdSave.visible(True)
+gui.F_Part_Notes.cmdSave.size(1000,375)
+gui.F_Part_Notes.cmdSave.zorder(0)
+gui.F_Part_Notes.cmdSave.position(200,2900)
+gui.F_Part_Notes.cmdSave.enabled(True)
+gui.F_Part_Notes.cmdSave.fontname("Arial")
+gui.F_Part_Notes.cmdSave.fontsize(8)
+gui.F_Part_Notes.cmdSave.event(click,cmdsave_click)
+
+
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Variable.Global.sRev.Declare(String)
+Variable.Global.sPartNo.Declare(String)
+Variable.Global.sLoc.Declare(String)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'For Customer FAST Houston
+'V.global.sPartNo.Set("0000-0000-0001")
+'V.global.sRev.Set("14")
+'V.global.sLoc.Set("Va")
+
+'Order Entry Script
+F.Intrinsic.Control.If(V.Caller.Hook,=,"12410")
+	F.Intrinsic.String.GSSPartString(V.Passed.000052,V.Passed.000053,V.Global.sPartNo)
+'	V.global.sPartNo.Set(V.Passed.000052)
+'	V.global.sRev.Set(V.Passed.000053)
+	V.global.sLoc.Set(V.Passed.000054)
+F.Intrinsic.Control.EndIf
+
+'Order entry populate - 12010
+F.Intrinsic.Control.If(V.Caller.Hook,=,"12010")
+	V.Passed.000162.Set("Part Notes")
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndIf
+
+'S&D script
+F.Intrinsic.Control.If(V.Caller.Hook,=,"14070")
+	F.Intrinsic.String.GSSPartString(V.Passed.000003,V.Passed.000099,V.Global.sPartNo)
+'	V.global.sPartNo.Set(V.Passed.000003)
+'	V.global.sRev.Set(V.Passed.000099)
+	V.global.sLoc.Set(V.Passed.000004)
+F.Intrinsic.Control.EndIf
+
+'S&D populate -  14045
+F.Intrinsic.Control.If(V.Caller.Hook,=,"14045")
+	V.Passed.000252.Set("Part Notes")
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Global.sPartNo,=,"")
+	F.Intrinsic.UI.Msgbox("Part No. required")
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndIf
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+Gui.F_Part_Notes..Show
+Gui.F_Part_Notes..AlwaysOnTop(True)
+
+V.Local.sQuery.Declare(String)
+
+'F.Intrinsic.String.Concat("Select * from ATG_3439_PART_NOTES where PARTNO='",V.global.sPartNo.psqlfriendly,"' AND REV='",V.global.sRev.psqlfriendly,"' AND LOC='",V.global.sLoc.psqlfriendly,"'",V.Local.sQuery)
+F.Intrinsic.String.Concat("Select * from ATG_3439_PART_NOTES where PARTNO='",V.global.sPartNo.psqlfriendly,"' AND LOC='",V.global.sLoc.psqlfriendly,"'",V.Local.sQuery)
+F.ODBC.Connection!conx.OpenRecordsetRW("rstPartNotes",V.local.sQuery)
+
+F.Intrinsic.Control.If(V.ODBC.conx!rstPartNotes.EOF,<>,True)
+	Gui.F_Part_Notes.txtPartNotes.Text(V.ODBC.conx!rstPartNotes.FieldValTrim!NOTES)
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rstPartNotes.Close
+
+Program.Sub.Main.End
+
+program.sub.f_part_notes_unload.start
+F.ODBC.Connection!conx.Close
+F.Intrinsic.Control.End
+
+program.sub.f_part_notes_unload.end
+
+program.sub.cmdsave_click.start
+V.Local.sQuery.Declare(String)
+
+F.Intrinsic.String.Concat("Select * from ATG_3439_PART_NOTES where PARTNO='",V.global.sPartNo.psqlfriendly,"' AND LOC='",V.global.sLoc.psqlfriendly,"'",V.Local.sQuery)
+'F.Intrinsic.String.Concat("Select * from ATG_3439_PART_NOTES where PARTNO='",V.global.sPartNo.psqlfriendly,"' AND REV='",V.global.sRev.psqlfriendly,"' AND LOC='",V.global.sLoc.psqlfriendly,"'",V.Local.sQuery)
+F.ODBC.Connection!conx.OpenRecordsetRW("rstPartNotes",V.local.sQuery)
+
+F.Intrinsic.Control.If(V.ODBC.conx!rstPartNotes.EOF,=,True)
+	F.ODBC.conx!rstPartNotes.AddNew
+	F.ODBC.conx!rstPartNotes.Set!PARTNO(V.Global.sPartNo)
+	F.ODBC.conx!rstPartNotes.Set!LOC(V.Global.sLoc)
+'	F.ODBC.conx!rstPartNotes.Set!REV(V.Global.sRev)
+F.Intrinsic.Control.EndIf
+
+F.ODBC.conx!rstPartNotes.Set!NOTES(V.Screen.F_Part_Notes!txtPartNotes.Text)
+F.ODBC.conx!rstPartNotes.Update
+F.ODBC.conx!rstPartNotes.Close
+
+F.Intrinsic.Control.CallSub("f_part_notes_unload")
+
+program.sub.cmdsave_click.end
+
+
